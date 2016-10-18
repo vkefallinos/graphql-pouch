@@ -1,3 +1,5 @@
+process.setMaxListeners(0);
+
 const fs = require('fs');
 const path = require('path');
 const events = require('events');
@@ -32,15 +34,13 @@ app.get('/_status', (req, res, next) => res.status(200).send({memMB: Math.floor(
 app.get('/graphql/:name?/_subscribe', (req, res) => {
   res.set('Content-Type', 'text/plain;charset=utf-8');
   res.set('Cache-Control', 'no-cache, must-revalidate');
-
-  dispatcher.once('message', message => res.end(message));
+  dispatcher.once('subscription update', message => res.end(message));
 });
 app.post('/graphql/:name?/_publish', (req, res) => {
-    dispatcher.emit('message', JSON.stringify(req.body));
+    dispatcher.emit('subscription update', JSON.stringify(req.body));
     res.set('Content-Type', 'text/plain;charset=utf-8');
     res.end('ok');
 });
-
 
 app.use('/graphql/:name?', checkJWT, (req, res, next) => {
   const schemaName = req.params.name || 'default';

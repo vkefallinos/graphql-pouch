@@ -5,9 +5,17 @@ export default class NetworkLayer extends Relay.DefaultNetworkLayer {
   constructor(...args) {
     super(...args);
     this.url = args[0];
-    this._requests = Object.create(null);    
+    this._requests = Object.create(null);
+    this._dispatcher = new EventEmitter();
+
     const closeSubscription = this._subscribe();
     // this._socket = io();
+
+    this._dispatcher.on('subscription update', (message, author) => {
+      console.log('MESSAGE')
+      console.log(message)
+      console.log(author)
+    })
 
     // this._socket.on('subscription update', ({ id, data, errors }) => {
     //   const request = this._requests[id];
@@ -49,11 +57,11 @@ export default class NetworkLayer extends Relay.DefaultNetworkLayer {
     console.log(request.getQueryString())
     console.log(request.getVariables())
 
-    // this._socket.emit('subscribe', {
-    //   id,
-    //   query: request.getQueryString(),
-    //   variables: request.getVariables(),
-    // });
+    this._dispatcher.emit('subscribe', {
+      id,
+      query: request.getQueryString(),
+      variables: request.getVariables(),
+    });
 
     return {
       dispose: () => {
@@ -73,9 +81,7 @@ export default class NetworkLayer extends Relay.DefaultNetworkLayer {
   }
 
   _publish (message, author) {
-      this.form.message.value = '';
-      this.form.button.className += ' disabled';
-      var xhr = new XMLHttpRequest();
+      const xhr = new XMLHttpRequest();
       xhr.open('POST', `${this.url}/_publish`, true);
       xhr.setRequestHeader('Content-Type', 'application/json');
       xhr.send(JSON.stringify({
@@ -85,15 +91,16 @@ export default class NetworkLayer extends Relay.DefaultNetworkLayer {
   }
 
   _subscribe() {
-      var xhr = new XMLHttpRequest();
-      var self = this;
+      const xhr = new XMLHttpRequest();
+      const self = this;
 
       xhr.onreadystatechange = function () {
           if (this.readyState != 4) return;
 
           if (this.status == 200) {
-              var data = JSON.parse(this.responseText);
-              self.displayMessage(data.message, data.author);
+              console.log(this.responseText)
+              const data = JSON.parse(this.responseText);
+              self._dispatcher.emit(data.message, data.author);
               self._subscribe();
               return;
           }
